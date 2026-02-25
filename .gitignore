@@ -10,3 +10,6 @@ obj-intel64/
 spec_2006/
 *.zip
 *.tar.gz
+
+# Pin
+pin/
