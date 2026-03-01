@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unordered_set>
 #include <iomanip>
+#include <chrono>
 
 using std::cerr;
 using std::endl;
@@ -13,6 +14,7 @@ KNOB<string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o", "hw1.out", "spe
 KNOB<UINT64> KnobFastForward(KNOB_MODE_WRITEONCE, "pintool", "f", "0", "number of billions of instructions to fast-forward");
 
 std::ofstream OutFile;
+std::chrono::steady_clock::time_point start_time;
 
 UINT64 icount = 0;
 UINT64 ff_target = 0;
@@ -148,16 +150,18 @@ VOID PrintStatsAndExit() {
     print_row("16. Floating-point", count_fp);
     print_row("17. The rest", count_others);
 
-    OutFile << "\n===============================================\n";
-    OutFile << "PART C: MEMORY FOOTPRINT (32-BYTE CHUNKS)\n";
-    OutFile << "===============================================\n";
-    OutFile << "Instruction Footprint (Bytes) : " << instr_chunks.size() * 32 << "\n";
-    OutFile << "Instr Accesses (Single Chunk) : " << instr_single_chunk << "\n";
-    OutFile << "Instr Accesses (Multi Chunk)  : " << instr_multi_chunk << "\n";
-    OutFile << "-----------------------------------------------\n";
-    OutFile << "Data Footprint (Bytes)        : " << data_chunks.size() * 32 << "\n";
-    OutFile << "Data Accesses (Single Chunk)  : " << data_single_chunk << "\n";
-    OutFile << "Data Accesses (Multi Chunk)   : " << data_multi_chunk << "\n";
+  OutFile << "\n===============================================\n";
+  OutFile << "PART C: MEMORY FOOTPRINT (32-BYTE CHUNKS)\n";
+  OutFile << "===============================================\n";
+  OutFile << "Instruction Footprint (32-byte Blocks) : " << instr_chunks.size() << "\n";
+  OutFile << "Instruction Footprint (Bytes)          : " << instr_chunks.size() * 32 << "\n";
+  OutFile << "Instr Accesses (Single Chunk)          : " << instr_single_chunk << "\n";
+  OutFile << "Instr Accesses (Multi Chunk)           : " << instr_multi_chunk << "\n";
+  OutFile << "-----------------------------------------------\n";
+  OutFile << "Data Footprint (32-byte Blocks)        : " << data_chunks.size() << "\n";
+  OutFile << "Data Footprint (Bytes)                 : " << data_chunks.size() * 32 << "\n";
+  OutFile << "Data Accesses (Single Chunk)           : " << data_single_chunk << "\n";
+  OutFile << "Data Accesses (Multi Chunk)            : " << data_multi_chunk << "\n"; 
 
     OutFile << "\n===============================================\n";
     OutFile << "PART D: ia32 ISA PROPERTIES\n";
@@ -165,12 +169,12 @@ VOID PrintStatsAndExit() {
 
     OutFile << "[D.1] Instruction Length Distribution:\n";
     for (int i = 1; i < 20; i++) {
-        if (len_dist[i] > 0) OutFile << "  " << i << " bytes: " << len_dist[i] << "\n";
+        OutFile << "  " << i << " bytes: " << len_dist[i] << "\n";
     }
 
     OutFile << "\n[D.2] Operand Count Distribution:\n";
     for (int i = 0; i < 20; i++) {
-        if (op_dist[i] > 0) OutFile << "  " << i << " operands: " << op_dist[i] << "\n";
+        OutFile << "  " << i << " operands: " << op_dist[i] << "\n";
     }
 
     OutFile << "\n[D.3] Instrs with 2 Reg Read Operands : " << rregs_2 << "\n";
@@ -188,7 +192,11 @@ VOID PrintStatsAndExit() {
     OutFile << "[D.10] Max Displacement Value         : " << max_disp << "\n";
     OutFile << "[D.10] Min Displacement Value         : " << min_disp << "\n";
     OutFile << "===============================================\n";
-
+    
+    auto end_time = std::chrono::steady_clock::now();
+    double elapsed = std::chrono::duration<double>(end_time - start_time).count();
+    OutFile << "Time Taken (minutes) : " << std::fixed << std::setprecision(6) << elapsed / 60.0 << "\n";
+    OutFile << "===============================================\n";
     OutFile.close();
     exit(0);
 }
@@ -395,6 +403,8 @@ int main(int argc, char *argv[]) {
     end_target = ff_target + 1000000000ULL;
     INS_AddInstrumentFunction(Instruction, 0);
     PIN_AddFiniFunction(Fini, 0);
+
+    start_time = std::chrono::steady_clock::now();
     PIN_StartProgram();
     return 0;
 }
